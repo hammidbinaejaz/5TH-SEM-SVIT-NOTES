@@ -160,10 +160,42 @@ function renderSubjectCards() {
 
   container.innerHTML = "";
 
-  Object.values(subjectsData).forEach((subject) => {
+  Object.values(subjectsData).forEach((subject, index) => {
     const card = document.createElement("div");
     card.className = "subject-card";
-    card.style.setProperty("--card-accent", subject.color);
+    
+    // Set subject-specific gradient for card
+    const gradients = {
+      'CN': 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
+      'TOC': 'linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%)',
+      'UNIX': 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
+      'SE-&-MP': 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)',
+      'RM-&-IPR': 'linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%)',
+      'EVS': 'linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%)'
+    };
+    
+    const softGradients = {
+      'CN': 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%)',
+      'TOC': 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(147, 51, 234, 0.08) 100%)',
+      'UNIX': 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+      'SE-&-MP': 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.08) 100%)',
+      'RM-&-IPR': 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(8, 145, 178, 0.08) 100%)',
+      'EVS': 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%)'
+    };
+    
+    const shadows = {
+      'CN': '0 12px 32px -8px rgba(59, 130, 246, 0.25), 0 16px 48px -16px rgba(37, 99, 235, 0.2)',
+      'TOC': '0 12px 32px -8px rgba(168, 85, 247, 0.25), 0 16px 48px -16px rgba(147, 51, 234, 0.2)',
+      'UNIX': '0 12px 32px -8px rgba(16, 185, 129, 0.25), 0 16px 48px -16px rgba(5, 150, 105, 0.2)',
+      'SE-&-MP': '0 12px 32px -8px rgba(249, 115, 22, 0.25), 0 16px 48px -16px rgba(234, 88, 12, 0.2)',
+      'RM-&-IPR': '0 12px 32px -8px rgba(6, 182, 212, 0.25), 0 16px 48px -16px rgba(8, 145, 178, 0.2)',
+      'EVS': '0 12px 32px -8px rgba(34, 197, 94, 0.25), 0 16px 48px -16px rgba(22, 163, 74, 0.2)'
+    };
+    
+    card.style.setProperty("--card-accent", gradients[subject.code] || subject.color);
+    card.style.setProperty("--card-gradient", softGradients[subject.code] || 'rgba(0, 0, 0, 0.05)');
+    card.style.setProperty("--shadow-tint", shadows[subject.code] || '0 12px 32px -8px rgba(0, 0, 0, 0.15)');
+    
     card.onclick = () => {
       window.location.href = `${subject.slug}.html`;
     };
@@ -172,7 +204,7 @@ function renderSubjectCards() {
       <span class="subject-card-icon">${subject.icon}</span>
       <h3>${subject.name}</h3>
       <p class="subject-code">${subject.code}</p>
-      ${subject.subtitle ? `<p style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.5rem;">${subject.subtitle}</p>` : ''}
+      ${subject.subtitle ? `<p style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.5rem; position: relative; z-index: 1;">${subject.subtitle}</p>` : ''}
     `;
 
     container.appendChild(card);
