@@ -1,8 +1,11 @@
 /**
- * 5th Semester Notes - Data Structure & Rendering
- * This object contains all subjects and their resources
- * Easy to update when new PDFs are added
+ * 5th Semester Notes - Premium UI/UX Features
+ * Complete implementation with all enhancements
  */
+
+// ============================================================================
+// DATA STRUCTURE
+// ============================================================================
 
 const subjectsData = {
   CN: {
@@ -144,80 +147,508 @@ const subjectsData = {
   }
 };
 
-/**
- * Get subject by slug
- */
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 function getSubjectBySlug(slug) {
   return Object.values(subjectsData).find(subject => subject.slug === slug);
 }
 
-/**
- * Render subject cards on homepage
- */
+function formatFileName(file) {
+  const fileName = file.split("/").pop().replace(/.pdf$/i, "");
+  return fileName
+    .replace(/-/g, " ")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (l) => l.toUpperCase())
+    .replace(/Cn /g, "CN ")
+    .replace(/Toc /g, "TOC ")
+    .replace(/Unix /g, "Unix ")
+    .replace(/Se /g, "SE ")
+    .replace(/Rm /g, "RM ")
+    .replace(/Evs /g, "EVS ")
+    .replace(/Qb /g, "QB ")
+    .replace(/Pyq/g, "PYQ")
+    .replace(/Mqp/g, "MQP");
+}
+
+function getFileTypeIcon(file) {
+  const fileName = file.toLowerCase();
+  if (fileName.includes('best') || fileName.includes('notes')) return '📖';
+  if (fileName.includes('module') || fileName.includes('m1') || fileName.includes('m2') || 
+      fileName.includes('m3') || fileName.includes('m4') || fileName.includes('m5')) return '📚';
+  if (fileName.includes('qb') || fileName.includes('question bank') || fileName.includes('imp')) return '❓';
+  if (fileName.includes('pyq') || fileName.includes('previous')) return '📝';
+  if (fileName.includes('mqp') || fileName.includes('model')) return '📄';
+  return '📄';
+}
+
+function getFileTypeLabel(file) {
+  const fileName = file.toLowerCase();
+  if (fileName.includes('best')) return 'Best Notes';
+  if (fileName.includes('module') || fileName.includes('m1') || fileName.includes('m2') || 
+      fileName.includes('m3') || fileName.includes('m4') || fileName.includes('m5')) return 'Module Notes';
+  if (fileName.includes('qb') || fileName.includes('question bank') || fileName.includes('imp')) return 'Question Bank';
+  if (fileName.includes('pyq') || fileName.includes('previous')) return 'Previous Year';
+  if (fileName.includes('mqp') || fileName.includes('model')) return 'Model Paper';
+  return 'PDF Document';
+}
+
+function getTotalFileCount(subject) {
+  return Object.values(subject.resources).flat().length;
+}
+
+function getModuleCount(subject) {
+  return Object.keys(subject.resources).filter(k => k.toLowerCase().includes('module')).length;
+}
+
+// ============================================================================
+// TOAST NOTIFICATIONS
+// ============================================================================
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'polite');
+  toast.innerHTML = `
+    <span class="toast-icon">${type === 'success' ? '✓' : '⚠'}</span>
+    <span class="toast-message">${message}</span>
+  `;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ============================================================================
+// DOWNLOAD TRACKING
+// ============================================================================
+
+function trackDownload(file) {
+  const recentDownloads = JSON.parse(localStorage.getItem('recentDownloads') || '[]');
+  const downloadEntry = {
+    file: file,
+    name: formatFileName(file),
+    timestamp: Date.now()
+  };
+  
+  // Remove if already exists
+  const index = recentDownloads.findIndex(d => d.file === file);
+  if (index > -1) recentDownloads.splice(index, 1);
+  
+  // Add to beginning
+  recentDownloads.unshift(downloadEntry);
+  
+  // Keep only last 10
+  if (recentDownloads.length > 10) recentDownloads.pop();
+  
+  localStorage.setItem('recentDownloads', JSON.stringify(recentDownloads));
+  showToast(`Downloading ${formatFileName(file)}...`, 'success');
+}
+
+// ============================================================================
+// SEARCH FUNCTIONALITY
+// ============================================================================
+
+function createSearchBar(container, searchCallback) {
+  const searchHTML = `
+    <div class="search-container">
+      <input 
+        type="search" 
+        id="search-input" 
+        class="search-input" 
+        placeholder="Search subjects or files..."
+        aria-label="Search"
+        autocomplete="off"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+  `;
+  
+  const searchWrapper = document.createElement('div');
+  searchWrapper.innerHTML = searchHTML;
+  container.insertBefore(searchWrapper.firstElementChild, container.firstChild);
+  
+  const searchInput = document.getElementById('search-input');
+  let searchTimeout;
+  
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchCallback(e.target.value.toLowerCase().trim());
+    }, 200);
+  });
+  
+  // Keyboard shortcut: Cmd/Ctrl + K
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      searchInput.focus();
+    }
+  });
+  
+  return searchInput;
+}
+
+function filterSubjects(searchTerm) {
+  const cards = document.querySelectorAll('.subject-card');
+  let visibleCount = 0;
+  
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    const isVisible = !searchTerm || text.includes(searchTerm);
+    card.style.display = isVisible ? '' : 'none';
+    if (isVisible) visibleCount++;
+  });
+  
+  // Show empty state if no results
+  const container = document.getElementById('subjects-container');
+  let emptyState = container.querySelector('.empty-state');
+  
+  if (visibleCount === 0 && searchTerm) {
+    if (!emptyState) {
+      emptyState = document.createElement('div');
+      emptyState.className = 'empty-state';
+      emptyState.innerHTML = `
+        <div class="empty-state-icon">🔍</div>
+        <h3>No subjects found</h3>
+        <p>Try a different search term</p>
+      `;
+      container.appendChild(emptyState);
+    }
+  } else if (emptyState) {
+    emptyState.remove();
+  }
+}
+
+function filterFiles(searchTerm) {
+  const cards = document.querySelectorAll('.resource-card');
+  let visibleCount = 0;
+  
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    const isVisible = !searchTerm || text.includes(searchTerm);
+    card.style.display = isVisible ? '' : 'none';
+    if (isVisible) visibleCount++;
+  });
+  
+  // Show empty state
+  const container = document.querySelector('.tab-content.active');
+  if (!container) return;
+  
+  let emptyState = container.querySelector('.empty-state');
+  
+  if (visibleCount === 0 && searchTerm) {
+    if (!emptyState) {
+      emptyState = document.createElement('div');
+      emptyState.className = 'empty-state';
+      emptyState.innerHTML = `
+        <div class="empty-state-icon">🔍</div>
+        <h3>No files found</h3>
+        <p>Try a different search term</p>
+      `;
+      container.appendChild(emptyState);
+    }
+  } else if (emptyState) {
+    emptyState.remove();
+  }
+}
+
+// ============================================================================
+// KEYBOARD NAVIGATION
+// ============================================================================
+
+function setupKeyboardNavigation() {
+  // Tab navigation for subject cards
+  const cards = document.querySelectorAll('.subject-card');
+  cards.forEach((card, index) => {
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `Navigate to ${card.querySelector('h3').textContent}`);
+    
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = cards[index + 1] || cards[0];
+        next.focus();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = cards[index - 1] || cards[cards.length - 1];
+        prev.focus();
+      }
+    });
+  });
+  
+  // Tab navigation for tabs
+  const tabButtons = document.querySelectorAll('.tab-button');
+  tabButtons.forEach((button, index) => {
+    button.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const next = tabButtons[index + 1] || tabButtons[0];
+        next.focus();
+        next.click();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const prev = tabButtons[index - 1] || tabButtons[tabButtons.length - 1];
+        prev.focus();
+        prev.click();
+      } else if (e.key >= '1' && e.key <= '5') {
+        const num = parseInt(e.key) - 1;
+        if (tabButtons[num]) {
+          e.preventDefault();
+          tabButtons[num].focus();
+          tabButtons[num].click();
+        }
+      }
+    });
+  });
+  
+  // Resource card navigation
+  const resourceCards = document.querySelectorAll('.resource-card');
+  resourceCards.forEach((card, index) => {
+    card.setAttribute('tabindex', '0');
+    
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        card.click();
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = resourceCards[index + 1] || resourceCards[0];
+        next.focus();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = resourceCards[index - 1] || resourceCards[resourceCards.length - 1];
+        prev.focus();
+      }
+    });
+  });
+}
+
+// ============================================================================
+// MOBILE GESTURES
+// ============================================================================
+
+function setupSwipeGestures() {
+  const tabsNav = document.querySelector('.tabs-nav');
+  if (!tabsNav || !('ontouchstart' in window)) return;
+  
+  let startX = 0;
+  let startY = 0;
+  let distX = 0;
+  let distY = 0;
+  const threshold = 50;
+  const restraint = 100;
+  const allowedTime = 300;
+  let startTime = 0;
+  
+  tabsNav.addEventListener('touchstart', (e) => {
+    const touch = e.changedTouches[0];
+    startX = touch.pageX;
+    startY = touch.pageY;
+    startTime = new Date().getTime();
+  });
+  
+  tabsNav.addEventListener('touchend', (e) => {
+    const touch = e.changedTouches[0];
+    distX = touch.pageX - startX;
+    distY = touch.pageY - startY;
+    const elapsedTime = new Date().getTime() - startTime;
+    
+    if (elapsedTime <= allowedTime && Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+      const activeTab = document.querySelector('.tab-button.active');
+      const tabs = Array.from(document.querySelectorAll('.tab-button'));
+      const currentIndex = tabs.indexOf(activeTab);
+      
+      if (distX > 0 && currentIndex > 0) {
+        // Swipe right - previous tab
+        tabs[currentIndex - 1].click();
+      } else if (distX < 0 && currentIndex < tabs.length - 1) {
+        // Swipe left - next tab
+        tabs[currentIndex + 1].click();
+      }
+    }
+  });
+}
+
+// ============================================================================
+// SCROLL ANIMATIONS
+// ============================================================================
+
+function setupScrollAnimations() {
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate-in');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+  
+  document.querySelectorAll('.subject-card, .resource-card, .resource-category').forEach(el => {
+    observer.observe(el);
+  });
+}
+
+// ============================================================================
+// RENDER FUNCTIONS
+// ============================================================================
+
 function renderSubjectCards() {
   const container = document.getElementById("subjects-container");
   if (!container) return;
 
-  container.innerHTML = "";
+  // Show skeleton loader
+  container.innerHTML = '<div class="skeleton-loader"></div>'.repeat(6);
+  
+  setTimeout(() => {
+    container.innerHTML = "";
+    
+    Object.values(subjectsData).forEach((subject, index) => {
+      const card = document.createElement("div");
+      card.className = "subject-card";
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', `Navigate to ${subject.name}`);
+      
+      const gradients = {
+        'CN': 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+        'TOC': 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
+        'UNIX': 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
+        'SE-&-MP': 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)',
+        'RM-&-IPR': 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
+        'EVS': 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)'
+      };
+      
+      const softGradients = {
+        'CN': 'rgba(96, 165, 250, 0.15)',
+        'TOC': 'rgba(167, 139, 250, 0.15)',
+        'UNIX': 'rgba(52, 211, 153, 0.15)',
+        'SE-&-MP': 'rgba(251, 146, 60, 0.15)',
+        'RM-&-IPR': 'rgba(34, 211, 238, 0.15)',
+        'EVS': 'rgba(74, 222, 128, 0.15)'
+      };
+      
+      const glows = {
+        'CN': '0 0 20px rgba(96, 165, 250, 0.3)',
+        'TOC': '0 0 20px rgba(167, 139, 250, 0.3)',
+        'UNIX': '0 0 20px rgba(52, 211, 153, 0.3)',
+        'SE-&-MP': '0 0 20px rgba(251, 146, 60, 0.3)',
+        'RM-&-IPR': '0 0 20px rgba(34, 211, 238, 0.3)',
+        'EVS': '0 0 20px rgba(74, 222, 128, 0.3)'
+      };
+      
+      card.style.setProperty("--card-accent", gradients[subject.code] || subject.color);
+      card.style.setProperty("--card-gradient", softGradients[subject.code] || 'rgba(0, 0, 0, 0.05)');
+      card.style.setProperty("--card-glow", glows[subject.code] || 'none');
+      
+      const fileCount = getTotalFileCount(subject);
+      const moduleCount = getModuleCount(subject);
+      
+      card.onclick = () => {
+        window.location.href = `${subject.slug}.html`;
+      };
+      
+      // Click feedback
+      card.addEventListener('mousedown', () => {
+        card.style.transform = 'scale(0.98)';
+      });
+      card.addEventListener('mouseup', () => {
+        card.style.transform = '';
+      });
 
-  Object.values(subjectsData).forEach((subject, index) => {
-    const card = document.createElement("div");
-    card.className = "subject-card";
-    
-    // Set subject-specific gradient for card
-    const gradients = {
-      'CN': 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
-      'TOC': 'linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%)',
-      'UNIX': 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
-      'SE-&-MP': 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)',
-      'RM-&-IPR': 'linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%)',
-      'EVS': 'linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%)'
-    };
-    
-    const softGradients = {
-      'CN': 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%)',
-      'TOC': 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(147, 51, 234, 0.08) 100%)',
-      'UNIX': 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
-      'SE-&-MP': 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.08) 100%)',
-      'RM-&-IPR': 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(8, 145, 178, 0.08) 100%)',
-      'EVS': 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%)'
-    };
-    
-    const shadows = {
-      'CN': '0 12px 32px -8px rgba(59, 130, 246, 0.25), 0 16px 48px -16px rgba(37, 99, 235, 0.2)',
-      'TOC': '0 12px 32px -8px rgba(168, 85, 247, 0.25), 0 16px 48px -16px rgba(147, 51, 234, 0.2)',
-      'UNIX': '0 12px 32px -8px rgba(16, 185, 129, 0.25), 0 16px 48px -16px rgba(5, 150, 105, 0.2)',
-      'SE-&-MP': '0 12px 32px -8px rgba(249, 115, 22, 0.25), 0 16px 48px -16px rgba(234, 88, 12, 0.2)',
-      'RM-&-IPR': '0 12px 32px -8px rgba(6, 182, 212, 0.25), 0 16px 48px -16px rgba(8, 145, 178, 0.2)',
-      'EVS': '0 12px 32px -8px rgba(34, 197, 94, 0.25), 0 16px 48px -16px rgba(22, 163, 74, 0.2)'
-    };
-    
-    card.style.setProperty("--card-accent", gradients[subject.code] || subject.color);
-    card.style.setProperty("--card-gradient", softGradients[subject.code] || 'rgba(0, 0, 0, 0.05)');
-    card.style.setProperty("--shadow-tint", shadows[subject.code] || '0 12px 32px -8px rgba(0, 0, 0, 0.15)');
-    
-    card.onclick = () => {
-      window.location.href = `${subject.slug}.html`;
-    };
+      card.innerHTML = `
+        <span class="subject-card-icon">${subject.icon}</span>
+        <h3>${subject.name}</h3>
+        <p class="subject-code">${subject.code}</p>
+        ${subject.subtitle ? `<p class="subject-subtitle">${subject.subtitle}</p>` : ''}
+        <div class="subject-stats">
+          <span class="stat-badge">${fileCount} files</span>
+          ${moduleCount > 0 ? `<span class="stat-badge">${moduleCount} modules</span>` : ''}
+        </div>
+      `;
 
-    card.innerHTML = `
-      <span class="subject-card-icon">${subject.icon}</span>
-      <h3>${subject.name}</h3>
-      <p class="subject-code">${subject.code}</p>
-      ${subject.subtitle ? `<p style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.5rem; position: relative; z-index: 1;">${subject.subtitle}</p>` : ''}
-    `;
-
-    container.appendChild(card);
-  });
+      container.appendChild(card);
+    });
+    
+    // Add search bar
+    createSearchBar(container.parentElement, filterSubjects);
+    
+    // Setup keyboard navigation
+    setupKeyboardNavigation();
+    setupScrollAnimations();
+  }, 300);
 }
 
-/**
- * Render subject page with resources
- */
+function organizeResourcesIntoTabs(subject) {
+  const tabs = {
+    'best-notes': [],
+    'modules': [],
+    'question-bank': [],
+    'pyqs': [],
+    'model-papers': []
+  };
+
+  Object.entries(subject.resources).forEach(([category, files]) => {
+    const categoryLower = category.toLowerCase();
+    
+    if (categoryLower.includes('best')) {
+      tabs['best-notes'] = files;
+    } else if (categoryLower.includes('module')) {
+      tabs['modules'].push(...files);
+    } else if (categoryLower.includes('question bank') || categoryLower.includes('qb')) {
+      tabs['question-bank'].push(...files);
+    } else if (categoryLower.includes('previous year') || categoryLower.includes('pyq')) {
+      tabs['pyqs'].push(...files);
+    } else if (categoryLower.includes('model') || categoryLower.includes('mqp')) {
+      tabs['model-papers'].push(...files);
+    }
+  });
+
+  return tabs;
+}
+
+function renderResourceCard(file, isProminent = false, isQB = false) {
+  const displayName = formatFileName(file);
+  const icon = getFileTypeIcon(file);
+  const typeLabel = getFileTypeLabel(file);
+  const classes = ['resource-card'];
+  if (isProminent) classes.push('prominent');
+  if (isQB) classes.push('qb-style');
+  
+  return `
+    <a 
+      href="${file}" 
+      download 
+      class="${classes.join(' ')}"
+      tabindex="0"
+      aria-label="Download ${displayName}"
+      data-file="${file}"
+      data-type="${typeLabel}"
+    >
+      <span class="resource-card-icon">${icon}</span>
+      <span class="resource-card-title">${displayName}</span>
+      <span class="resource-card-type">${typeLabel}</span>
+    </a>
+  `;
+}
+
 function renderSubjectPage() {
-  // Get slug from URL - handle both full paths and simple filenames
   let slug = window.location.pathname.split('/').pop().replace('.html', '');
-  // Fallback: try to get from body data attribute if path parsing fails
   if (!slug || slug === '') {
     slug = document.body.getAttribute('data-subject') || '';
   }
@@ -245,61 +676,268 @@ function renderSubjectPage() {
   // Update page title
   document.title = `${subject.name} – 5th Semester Notes`;
 
-  // Render resources
+  // Add breadcrumbs
+  const main = document.querySelector('main');
+  const breadcrumbs = main.querySelector('.breadcrumbs') || document.createElement('nav');
+  breadcrumbs.className = 'breadcrumbs';
+  breadcrumbs.setAttribute('aria-label', 'Breadcrumb');
+  breadcrumbs.innerHTML = `
+    <a href="index.html">Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>${subject.name}</span>
+  `;
+  if (!main.querySelector('.breadcrumbs')) {
+    main.insertBefore(breadcrumbs, main.firstChild);
+  }
+
+  // Render tabbed layout
   const container = document.getElementById("resources-container");
   if (!container) return;
 
-  container.innerHTML = "";
+  // Show skeleton
+  container.innerHTML = '<div class="skeleton-loader"></div>'.repeat(3);
+  
+  setTimeout(() => {
+    const tabs = organizeResourcesIntoTabs(subject);
+    const availableTabs = Object.entries(tabs).filter(([_, files]) => files.length > 0);
 
-  Object.entries(subject.resources).forEach(([category, files]) => {
-    const categoryDiv = document.createElement("div");
-    categoryDiv.className = "resource-category";
+    if (availableTabs.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <h3>No resources available</h3>
+          <p>Check back later for updates</p>
+        </div>
+      `;
+      return;
+    }
 
-    let filesHTML = "";
+    // Build tab navigation
+    const tabLabels = {
+      'best-notes': 'Best Notes',
+      'modules': 'Modules',
+      'question-bank': 'Question Bank',
+      'pyqs': 'PYQs',
+      'model-papers': 'Model Papers'
+    };
 
-    files.forEach((file) => {
-      const fileName = file.split("/").pop().replace(/.pdf$/i, "");
-      const displayName = fileName
-        .replace(/-/g, " ")
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (l) => l.toUpperCase())
-        .replace(/Cn /g, "CN ")
-        .replace(/Toc /g, "TOC ")
-        .replace(/Unix /g, "Unix ")
-        .replace(/Se /g, "SE ")
-        .replace(/Rm /g, "RM ")
-        .replace(/Evs /g, "EVS ")
-        .replace(/Qb /g, "QB ")
-        .replace(/Pyq/g, "PYQ")
-        .replace(/Mqp/g, "MQP");
+    let tabsNavHTML = '<div class="tabs-container"><div class="tabs-nav" role="tablist">';
+    availableTabs.forEach(([tabId, files], index) => {
+      tabsNavHTML += `
+        <button 
+          class="tab-button ${index === 0 ? 'active' : ''}" 
+          data-tab="${tabId}"
+          role="tab"
+          aria-selected="${index === 0}"
+          aria-controls="tab-${tabId}"
+          id="tab-button-${tabId}"
+        >
+          ${tabLabels[tabId] || tabId}
+          <span class="tab-badge">${files.length}</span>
+        </button>
+      `;
+    });
+    tabsNavHTML += '</div>';
 
-      filesHTML += `
-        <li>
-          <a href="${file}" download class="resource-link">
-            <span class="file-icon">📄</span>
-            <span class="resource-link-text">${displayName}</span>
-          </a>
-        </li>
+    // Build tab content
+    let tabsContentHTML = '';
+    availableTabs.forEach(([tabId, files], index) => {
+      let contentHTML = '';
+      
+      if (tabId === 'best-notes' && files.length > 0) {
+        contentHTML = `<div class="resource-grid">${renderResourceCard(files[0], true)}</div>`;
+      } else if (tabId === 'modules') {
+        const cardsHTML = files.map(file => renderResourceCard(file)).join('');
+        contentHTML = `<div class="resource-grid compact">${cardsHTML}</div>`;
+      } else if (tabId === 'question-bank') {
+        const cardsHTML = files.map(file => renderResourceCard(file, false, true)).join('');
+        contentHTML = `<div class="resource-grid compact">${cardsHTML}</div>`;
+      } else {
+        const cardsHTML = files.map(file => renderResourceCard(file)).join('');
+        contentHTML = `<div class="resource-grid compact">${cardsHTML}</div>`;
+      }
+
+      tabsContentHTML += `
+        <div 
+          class="tab-content ${index === 0 ? 'active' : ''}" 
+          data-tab-content="${tabId}"
+          role="tabpanel"
+          aria-labelledby="tab-button-${tabId}"
+          id="tab-${tabId}"
+        >
+          ${contentHTML}
+        </div>
       `;
     });
 
-    categoryDiv.innerHTML = `
-      <h3>${category}</h3>
-      <ul class="resource-list">
-        ${filesHTML}
-      </ul>
-    `;
+    tabsNavHTML += '</div>';
+    container.innerHTML = tabsNavHTML + tabsContentHTML;
 
-    container.appendChild(categoryDiv);
+    // Add search for files
+    const activeTabContent = container.querySelector('.tab-content.active');
+    if (activeTabContent) {
+      createSearchBar(container, filterFiles);
+    }
+
+    // Tab switching
+    const tabButtons = container.querySelectorAll('.tab-button');
+    const tabContents = container.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const targetTab = button.getAttribute('data-tab');
+
+        // Update active states
+        tabButtons.forEach((btn, idx) => {
+          btn.classList.remove('active');
+          btn.setAttribute('aria-selected', 'false');
+        });
+        tabContents.forEach(content => content.classList.remove('active'));
+
+        button.classList.add('active');
+        button.setAttribute('aria-selected', 'true');
+        const targetContent = container.querySelector(`[data-tab-content="${targetTab}"]`);
+        if (targetContent) {
+          targetContent.classList.add('active');
+          // Update search to filter new tab
+          const searchInput = document.getElementById('search-input');
+          if (searchInput) {
+            searchInput.value = '';
+            filterFiles('');
+          }
+        }
+      });
+    });
+
+    // Download tracking
+    container.querySelectorAll('.resource-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const file = card.getAttribute('data-file');
+        if (file) trackDownload(file);
+        
+        // Click feedback
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          card.style.transform = '';
+        }, 150);
+      });
+    });
+
+    // Setup keyboard navigation and gestures
+    setupKeyboardNavigation();
+    setupSwipeGestures();
+    setupScrollAnimations();
+    setupCopyLink();
+  }, 300);
+}
+
+// ============================================================================
+// COPY LINK FUNCTIONALITY
+// ============================================================================
+
+function setupCopyLink() {
+  const copyButton = document.querySelector('.copy-link-button');
+  if (!copyButton) return;
+  
+  copyButton.addEventListener('click', async () => {
+    const url = window.location.href;
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      copyButton.innerHTML = '<span class="copy-link-icon">✓</span><span class="copy-link-text">Copied!</span>';
+      copyButton.classList.add('copied');
+      showToast('Link copied to clipboard!', 'success');
+      
+      setTimeout(() => {
+        copyButton.innerHTML = '<span class="copy-link-icon">🔗</span><span class="copy-link-text">Copy Link</span>';
+        copyButton.classList.remove('copied');
+      }, 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Link copied to clipboard!', 'success');
+      } catch (e) {
+        showToast('Failed to copy link', 'error');
+      }
+      document.body.removeChild(textArea);
+    }
   });
 }
 
-// Initialize on page load
+// ============================================================================
+// RECENT DOWNLOADS WIDGET
+// ============================================================================
+
+function renderRecentDownloads() {
+  const recentDownloads = JSON.parse(localStorage.getItem('recentDownloads') || '[]');
+  
+  if (recentDownloads.length === 0) return;
+  
+  const container = document.getElementById('subjects-container');
+  if (!container) return;
+  
+  const widget = document.createElement('div');
+  widget.className = 'recent-downloads-widget';
+  widget.innerHTML = `
+    <div class="recent-downloads-header">
+      <h3>📥 Recent Downloads</h3>
+      <button class="clear-recent-btn" aria-label="Clear recent downloads" title="Clear all">Clear</button>
+    </div>
+    <div class="recent-downloads-list">
+      ${recentDownloads.slice(0, 5).map(item => `
+        <a href="${item.file}" download class="recent-download-item" title="${item.name}">
+          <span class="recent-download-icon">${getFileTypeIcon(item.file)}</span>
+          <span class="recent-download-name">${item.name}</span>
+          <span class="recent-download-time">${formatTimeAgo(item.timestamp)}</span>
+        </a>
+      `).join('')}
+    </div>
+  `;
+  
+  container.parentElement.insertBefore(widget, container);
+  
+  // Clear button functionality
+  const clearBtn = widget.querySelector('.clear-recent-btn');
+  clearBtn.addEventListener('click', () => {
+    localStorage.removeItem('recentDownloads');
+    widget.remove();
+    showToast('Recent downloads cleared', 'success');
+  });
+}
+
+function formatTimeAgo(timestamp) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
 document.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("subjects-container")) {
     renderSubjectCards();
+    renderRecentDownloads();
   }
   if (document.getElementById("resources-container")) {
     renderSubjectPage();
+    setupCopyLink();
+  }
+  
+  // Update last updated date
+  const lastUpdated = document.getElementById('last-updated');
+  if (lastUpdated) {
+    lastUpdated.textContent = new Date().getFullYear();
   }
 });
