@@ -185,7 +185,7 @@ function getFileTypeIcon(file) {
 
 function getFileTypeLabel(file) {
   const fileName = file.toLowerCase();
-  if (fileName.includes('best')) return 'Best Notes';
+  if (fileName.includes('best')) return 'Handwritten Important Questions';
   if (fileName.includes('module') || fileName.includes('m1') || fileName.includes('m2') || 
       fileName.includes('m3') || fileName.includes('m4') || fileName.includes('m5')) return 'Module Notes';
   if (fileName.includes('qb') || fileName.includes('question bank') || fileName.includes('imp')) return 'Question Bank';
@@ -714,7 +714,7 @@ function renderSubjectPage() {
 
     // Build tab navigation
     const tabLabels = {
-      'best-notes': 'Best Notes',
+      'best-notes': 'Handwritten Important Questions',
       'modules': 'Modules',
       'question-bank': 'Question Bank',
       'pyqs': 'PYQs',
@@ -922,10 +922,50 @@ function formatTimeAgo(timestamp) {
 }
 
 // ============================================================================
+// DARK MODE FUNCTIONALITY
+// ============================================================================
+
+function initDarkMode() {
+  // Check for saved theme preference or default to light mode
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  
+  // Update all toggle button icons
+  updateDarkModeIcon(savedTheme);
+  
+  // Setup all toggle buttons (in case there are multiple on the page)
+  const toggles = document.querySelectorAll('.dark-mode-toggle');
+  toggles.forEach(toggle => {
+    // Remove existing listeners by cloning
+    const newToggle = toggle.cloneNode(true);
+    toggle.parentNode.replaceChild(newToggle, toggle);
+    
+    newToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateDarkModeIcon(newTheme);
+    });
+  });
+}
+
+function updateDarkModeIcon(theme) {
+  const icons = document.querySelectorAll('.dark-mode-icon');
+  icons.forEach(icon => {
+    icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+  });
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialize dark mode first
+  initDarkMode();
+  
   if (document.getElementById("subjects-container")) {
     renderSubjectCards();
     renderRecentDownloads();
