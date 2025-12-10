@@ -622,7 +622,8 @@ function organizeResourcesIntoTabs(subject) {
     'modules': [],
     'question-bank': [],
     'pyqs': [],
-    'model-papers': []
+    'model-papers': [],
+    'documents': []
   };
 
   Object.entries(subject.resources).forEach(([category, files]) => {
@@ -638,6 +639,11 @@ function organizeResourcesIntoTabs(subject) {
       tabs['pyqs'].push(...files);
     } else if (categoryLower.includes('model') || categoryLower.includes('mqp')) {
       tabs['model-papers'].push(...files);
+    } else if (categoryLower.includes('scheme of evaluation') || categoryLower.includes('scheme')) {
+      tabs['documents'].push(...files);
+    } else {
+      // Catch-all for any other categories
+      tabs['documents'].push(...files);
     }
   });
 
@@ -740,7 +746,8 @@ function renderSubjectPage() {
       'modules': 'Modules',
       'question-bank': 'Question Bank',
       'pyqs': 'PYQs',
-      'model-papers': 'Model Papers'
+      'model-papers': 'Model Papers',
+      'documents': 'Documents'
     };
 
     let tabsNavHTML = '<div class="tabs-container"><div class="tabs-nav" role="tablist">';
