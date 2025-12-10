@@ -1,6 +1,7 @@
 /**
  * 5th Semester Notes - Premium UI/UX Features
  * Complete implementation with all enhancements
+ * Updated: Added Scheme of Evaluation (SOE) subject
  */
 
 // ============================================================================
