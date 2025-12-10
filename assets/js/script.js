@@ -80,7 +80,7 @@ const subjectsData = {
   },
   "SE-&-MP": {
     name: "Software Engineering & Project Management",
-    code: "SE & MP",
+    code: "SE & PM",
     slug: "se",
     icon: "📋",
     subtitle: "SDLC and project methodologies",
