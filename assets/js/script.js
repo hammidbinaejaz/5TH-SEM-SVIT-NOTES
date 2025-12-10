@@ -639,10 +639,8 @@ function organizeResourcesIntoTabs(subject) {
       tabs['pyqs'].push(...files);
     } else if (categoryLower.includes('model') || categoryLower.includes('mqp')) {
       tabs['model-papers'].push(...files);
-    } else if (categoryLower.includes('scheme of evaluation') || categoryLower.includes('scheme')) {
-      tabs['documents'].push(...files);
     } else {
-      // Catch-all for any other categories
+      // Catch-all for any other categories (including Scheme of Evaluation)
       tabs['documents'].push(...files);
     }
   });
