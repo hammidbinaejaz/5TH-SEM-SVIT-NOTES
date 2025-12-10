@@ -144,6 +144,23 @@ const subjectsData = {
       "Question Bank": ["EVS/EVS-QB.pdf"],
       "Previous Year Questions": ["EVS/EVS-PYQ.pdf"]
     }
+  },
+  SOE: {
+    name: "Scheme of Evaluation",
+    code: "SOE",
+    slug: "soe",
+    icon: "📊",
+    subtitle: "Evaluation schemes and course structure",
+    color: "#dc2626",
+    resources: {
+      "Scheme of Evaluation": [
+        "SOE/SCH_BCS501.pdf",
+        "SOE/SCH_BCS502.pdf",
+        "SOE/SCH_BCS503.pdf",
+        "SOE/SCH_BCS515C.pdf",
+        "SOE/SCH_BRMK557 modified.pdf"
+      ]
+    }
   }
 };
 
@@ -167,6 +184,7 @@ function formatFileName(file) {
     .replace(/Se /g, "SE ")
     .replace(/Rm /g, "RM ")
     .replace(/Evs /g, "EVS ")
+    .replace(/Soe /g, "SOE ")
     .replace(/Qb /g, "QB ")
     .replace(/Pyq/g, "PYQ")
     .replace(/Mqp/g, "MQP");
@@ -513,7 +531,7 @@ function renderSubjectCards() {
   if (!container) return;
 
   // Show skeleton loader
-  container.innerHTML = '<div class="skeleton-loader"></div>'.repeat(6);
+  container.innerHTML = '<div class="skeleton-loader"></div>'.repeat(7);
   
   setTimeout(() => {
     container.innerHTML = "";
@@ -531,7 +549,8 @@ function renderSubjectCards() {
         'UNIX': 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
         'SE-&-MP': 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)',
         'RM-&-IPR': 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
-        'EVS': 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)'
+        'EVS': 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+        'SOE': 'linear-gradient(135deg, #f87171 0%, #dc2626 100%)'
       };
       
       const softGradients = {
@@ -540,7 +559,8 @@ function renderSubjectCards() {
         'UNIX': 'rgba(52, 211, 153, 0.15)',
         'SE-&-MP': 'rgba(251, 146, 60, 0.15)',
         'RM-&-IPR': 'rgba(34, 211, 238, 0.15)',
-        'EVS': 'rgba(74, 222, 128, 0.15)'
+        'EVS': 'rgba(74, 222, 128, 0.15)',
+        'SOE': 'rgba(248, 113, 113, 0.15)'
       };
       
       const glows = {
@@ -549,7 +569,8 @@ function renderSubjectCards() {
         'UNIX': '0 0 20px rgba(52, 211, 153, 0.3)',
         'SE-&-MP': '0 0 20px rgba(251, 146, 60, 0.3)',
         'RM-&-IPR': '0 0 20px rgba(34, 211, 238, 0.3)',
-        'EVS': '0 0 20px rgba(74, 222, 128, 0.3)'
+        'EVS': '0 0 20px rgba(74, 222, 128, 0.3)',
+        'SOE': '0 0 20px rgba(248, 113, 113, 0.3)'
       };
       
       card.style.setProperty("--card-accent", gradients[subject.code] || subject.color);
